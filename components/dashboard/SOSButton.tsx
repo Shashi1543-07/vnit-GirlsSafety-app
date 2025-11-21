@@ -8,7 +8,7 @@ export default function SOSButton() {
     const [isActive, setIsActive] = useState(false);
     const [countdown, setCountdown] = useState(5);
 
-    const handleSOSClick = () => {
+    const handleSOSClick = async () => {
         if (isActive) {
             setIsActive(false);
             setCountdown(5);
@@ -18,12 +18,28 @@ export default function SOSButton() {
         setIsActive(true);
         // Simulate countdown
         let count = 5;
-        const timer = setInterval(() => {
+        const timer = setInterval(async () => {
             count -= 1;
             setCountdown(count);
             if (count === 0) {
                 clearInterval(timer);
                 // Trigger alert logic here
+                try {
+                    // Get location if possible, else send defaults
+                    const location = { latitude: 21.123, longitude: 79.056 }; // Mock VNIT location
+                    await fetch('/api/sos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...location, type: 'SOS' }),
+                    });
+                    alert("SOS Alert Sent! Authorities have been notified.");
+                } catch (error) {
+                    console.error("Failed to send SOS", error);
+                    alert("Failed to send SOS. Please call emergency contacts directly.");
+                } finally {
+                    setIsActive(false);
+                    setCountdown(5);
+                }
             }
         }, 1000);
     };
@@ -36,8 +52,8 @@ export default function SOSButton() {
                 transition={isActive ? { repeat: Infinity, duration: 1 } : {}}
                 onClick={handleSOSClick}
                 className={`relative w-48 h-48 rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 ${isActive
-                        ? "bg-red-600 shadow-red-600/50"
-                        : "bg-slate-800 shadow-slate-900/50 hover:bg-red-900/20 border-4 border-slate-700 hover:border-red-500/50"
+                    ? "bg-red-600 shadow-red-600/50"
+                    : "bg-slate-800 shadow-slate-900/50 hover:bg-red-900/20 border-4 border-slate-700 hover:border-red-500/50"
                     }`}
             >
                 <div className="absolute inset-0 rounded-full border-4 border-white/10 animate-ping" />

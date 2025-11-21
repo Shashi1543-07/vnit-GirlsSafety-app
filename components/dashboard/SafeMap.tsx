@@ -6,7 +6,7 @@ export default function SafeMap() {
     return (
         <div className="relative w-full h-[600px] bg-slate-900 rounded-2xl overflow-hidden border border-slate-800">
             {/* Simulated Map Background */}
-            <div className="absolute inset-0 bg-[url('https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/79.0882,21.1458,14,0/800x600?access_token=pk.eyJ1IjoiZXhhbXBsZSIsImEiOiJja2t5b3R0aG4wMmswMnBwYXA2emF6bmFzIn0.XXX')] bg-cover bg-center opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+            <div className="absolute inset-0 bg-slate-800 bg-cover bg-center opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
                 {/* Fallback if image fails or for better simulation */}
                 <div className="absolute inset-0 bg-slate-900/80 flex items-center justify-center">
                     <div className="text-center">

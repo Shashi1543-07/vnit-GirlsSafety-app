@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id               String      @id @default(cuid())
+  name             String
+  email            String      @unique
+  password         String?     // Optional for OTP flow
+  phone            String?     @unique
+  role             String      @default("STUDENT") // STUDENT, WARDEN, SECURITY, ADMIN
+  enrollmentNo     String?     @unique
+  studentId        String?     @unique
+  hostelName       String?
+  roomNo           String?
+  emergencyContact String?
+  bloodGroup       String?
+  medicalHistory   String?
+  isVerified       Boolean     @default(false)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  contacts         Contact[]
+  activities       Activity[]
+  reports          Report[]
+  healthLogs       HealthLog[]
+  trips            Trip[]
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  type      String   // "Family", "Authority", "Friend", etc.
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  type        String   // CHECK_IN, SOS, TRANSIT
+  location    String?  // GPS Coords
+  description String
+  status      String   // "Completed", "Pending", "Safe", etc.
+  timestamp   DateTime @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  type        String   // HARASSMENT, LIGHTING, OTHER
+  description String
+  location    String?
+  anonymous   Boolean  @default(false)
+  status      String   // PENDING, RESOLVED, INVESTIGATING
+  createdAt   DateTime @default(now())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model HealthLog {
+  id        String   @id @default(cuid())
+  mood      String
+  notes     String?
+  timestamp DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Trip {
+  id          String   @id @default(cuid())
+  startLocation String
+  endLocation   String
+  startTime     DateTime @default(now())
+  endTime       DateTime?
+  status        String   // ACTIVE, COMPLETED, ALERT
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

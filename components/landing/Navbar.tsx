@@ -21,8 +21,8 @@ export default function Navbar() {
                     <Link href="#how-it-works" className="text-sm text-slate-300 hover:text-white transition-colors">
                         How it Works
                     </Link>
-                    <Link href="/dashboard" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-full hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20">
-                        Launch App
+                    <Link href="/auth/login" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-full hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20">
+                        Login / Register
                     </Link>
                 </div>
             </div>
