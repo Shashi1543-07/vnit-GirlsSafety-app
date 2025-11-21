@@ -1,14 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     Bell, Users, Clock, FileText, MapPin,
-    CheckCircle, AlertTriangle, Search, Phone
+    CheckCircle, AlertTriangle, Search, Phone, Loader2
 } from "lucide-react";
 
 export default function WardenPage() {
     const [activeTab, setActiveTab] = useState("alerts");
+    const [alerts, setAlerts] = useState<any[]>([]);
+    const [trips, setTrips] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const fetchData = async () => {
+        setIsLoading(true);
+        try {
+            const [alertsRes, tripsRes] = await Promise.all([
+                fetch("/api/warden/alerts"),
+                fetch("/api/warden/trips")
+            ]);
+
+            const alertsData = await alertsRes.json();
+            const tripsData = await tripsRes.json();
+
+            if (alertsData.success) setAlerts(alertsData.alerts);
+            if (tripsData.success) setTrips(tripsData.trips);
+        } catch (error) {
+            console.error("Failed to fetch warden data", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+        // Poll every 30 seconds
+        const interval = setInterval(fetchData, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleResolve = async (id: string) => {
+        try {
+            const res = await fetch(`/api/warden/alerts/${id}/resolve`, {
+                method: "POST"
+            });
+            if (res.ok) {
+                fetchData(); // Refresh data
+            }
+        } catch (error) {
+            console.error("Failed to resolve alert", error);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-950 flex">
@@ -35,8 +78,8 @@ export default function WardenPage() {
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
                             className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-colors flex items-center gap-3 ${activeTab === item.id
-                                    ? "bg-emerald-600 text-white"
-                                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                                ? "bg-emerald-600 text-white"
+                                : "text-slate-400 hover:bg-slate-800 hover:text-white"
                                 }`}
                         >
                             <item.icon className="w-5 h-5" />
@@ -61,92 +104,108 @@ export default function WardenPage() {
                         </div>
                         <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-full">
                             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                            <span className="text-red-400 text-sm font-medium">2 Active SOS</span>
+                            <span className="text-red-400 text-sm font-medium">{alerts.length} Active SOS</span>
                         </div>
                     </div>
                 </header>
 
-                {activeTab === "alerts" && (
-                    <div className="space-y-6">
-                        {/* Critical Alerts */}
-                        <div className="grid gap-4">
-                            {[
-                                { name: "Priya Sharma", type: "SOS ALERT", loc: "Library Road", time: "2 mins ago", status: "Critical" },
-                                { name: "Anjali Gupta", type: "MISSED CHECK-IN", loc: "Main Gate", time: "15 mins ago", status: "Warning" },
-                            ].map((alert, i) => (
-                                <motion.div
-                                    key={i}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className={`p-6 rounded-2xl border ${alert.status === "Critical"
-                                            ? "bg-red-500/10 border-red-500/50"
-                                            : "bg-yellow-500/10 border-yellow-500/50"
-                                        }`}
-                                >
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex gap-4">
-                                            <div className={`p-3 rounded-full ${alert.status === "Critical" ? "bg-red-500 text-white" : "bg-yellow-500 text-white"
-                                                }`}>
-                                                <AlertTriangle className="w-6 h-6" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-white font-bold text-lg">{alert.type}</h3>
-                                                <p className="text-slate-300 font-medium">{alert.name}</p>
-                                                <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
-                                                    <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {alert.loc}</span>
-                                                    <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {alert.time}</span>
+                {isLoading && alerts.length === 0 && trips.length === 0 ? (
+                    <div className="flex justify-center items-center h-64">
+                        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                    </div>
+                ) : (
+                    <>
+                        {activeTab === "alerts" && (
+                            <div className="space-y-6">
+                                {alerts.length === 0 ? (
+                                    <div className="text-center text-slate-500 py-12">No active alerts</div>
+                                ) : (
+                                    <div className="grid gap-4">
+                                        {alerts.map((alert) => (
+                                            <motion.div
+                                                key={alert.id}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className={`p-6 rounded-2xl border ${alert.type === "SOS"
+                                                    ? "bg-red-500/10 border-red-500/50"
+                                                    : "bg-yellow-500/10 border-yellow-500/50"
+                                                    }`}
+                                            >
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex gap-4">
+                                                        <div className={`p-3 rounded-full ${alert.type === "SOS" ? "bg-red-500 text-white" : "bg-yellow-500 text-white"
+                                                            }`}>
+                                                            <AlertTriangle className="w-6 h-6" />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="text-white font-bold text-lg">{alert.type}</h3>
+                                                            <p className="text-slate-300 font-medium">{alert.user?.name || "Unknown Student"}</p>
+                                                            <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
+                                                                <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {alert.location || "Unknown Location"}</span>
+                                                                <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {new Date(alert.timestamp).toLocaleTimeString()}</span>
+                                                            </div>
+                                                            <p className="text-xs text-slate-500 mt-1">Room: {alert.user?.roomNo} • {alert.user?.hostelName}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleResolve(alert.id)}
+                                                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 font-medium flex items-center gap-2"
+                                                        >
+                                                            <CheckCircle className="w-4 h-4" /> Resolve
+                                                        </button>
+                                                        <button className="px-4 py-2 bg-white text-slate-900 rounded-lg hover:bg-slate-200 font-medium flex items-center gap-2">
+                                                            <Phone className="w-4 h-4" /> Call
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 font-medium">
-                                                View Location
-                                            </button>
-                                            <button className="px-4 py-2 bg-white text-slate-900 rounded-lg hover:bg-slate-200 font-medium flex items-center gap-2">
-                                                <Phone className="w-4 h-4" /> Call
-                                            </button>
-                                        </div>
+                                            </motion.div>
+                                        ))}
                                     </div>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                                )}
+                            </div>
+                        )}
 
-                {activeTab === "trips" && (
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                        <table className="w-full text-left">
-                            <thead className="bg-slate-950 text-slate-400 text-xs uppercase">
-                                <tr>
-                                    <th className="p-4">Student</th>
-                                    <th className="p-4">Destination</th>
-                                    <th className="p-4">Time Out</th>
-                                    <th className="p-4">Expected In</th>
-                                    <th className="p-4">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800">
-                                {[
-                                    { name: "Neha Singh", dest: "Market", out: "6:30 PM", in: "8:30 PM", status: "On Time" },
-                                    { name: "Riya Patel", dest: "Library", out: "7:00 PM", in: "9:00 PM", status: "On Time" },
-                                    { name: "Sara Khan", dest: "Hospital", out: "5:00 PM", in: "8:00 PM", status: "Delayed" },
-                                ].map((trip, i) => (
-                                    <tr key={i} className="text-slate-300 hover:bg-slate-800/50 transition-colors">
-                                        <td className="p-4 font-medium text-white">{trip.name}</td>
-                                        <td className="p-4">{trip.dest}</td>
-                                        <td className="p-4">{trip.out}</td>
-                                        <td className="p-4">{trip.in}</td>
-                                        <td className="p-4">
-                                            <span className={`px-2 py-1 rounded text-xs font-bold ${trip.status === "Delayed" ? "bg-red-500/20 text-red-400" : "bg-emerald-500/20 text-emerald-400"
-                                                }`}>
-                                                {trip.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                        {activeTab === "trips" && (
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                                <table className="w-full text-left">
+                                    <thead className="bg-slate-950 text-slate-400 text-xs uppercase">
+                                        <tr>
+                                            <th className="p-4">Student</th>
+                                            <th className="p-4">Destination</th>
+                                            <th className="p-4">Time Out</th>
+                                            <th className="p-4">Expected In</th>
+                                            <th className="p-4">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-800">
+                                        {trips.map((trip) => (
+                                            <tr key={trip.id} className="text-slate-300 hover:bg-slate-800/50 transition-colors">
+                                                <td className="p-4 font-medium text-white">
+                                                    {trip.user?.name}
+                                                    <div className="text-xs text-slate-500">{trip.user?.hostelName} • {trip.user?.roomNo}</div>
+                                                </td>
+                                                <td className="p-4">{trip.destination}</td>
+                                                <td className="p-4">{new Date(trip.startTime).toLocaleTimeString()}</td>
+                                                <td className="p-4">{new Date(trip.expectedReturn).toLocaleTimeString()}</td>
+                                                <td className="p-4">
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${trip.status === "DELAYED" ? "bg-red-500/20 text-red-400" : "bg-emerald-500/20 text-emerald-400"
+                                                        }`}>
+                                                        {trip.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {trips.length === 0 && (
+                                            <tr>
+                                                <td colSpan={5} className="p-8 text-center text-slate-500">No active trips</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </>
                 )}
             </main>
         </div>
