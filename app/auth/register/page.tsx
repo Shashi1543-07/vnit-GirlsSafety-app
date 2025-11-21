@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Loader2, Shield, User, Mail, Lock, Phone, Building,
@@ -10,23 +11,27 @@ import {
 
 const steps = [
     { id: 1, title: "Profile", icon: User },
-    { id: 2, title: "Academic", icon: Building },
+    { id: 2, title: "Professional", icon: Building },
     { id: 3, title: "Identity", icon: IdCard },
     { id: 4, title: "Permissions", icon: Shield },
 ];
 
-export default function RegisterPage() {
+function RegisterForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const role = searchParams.get("role") || "STUDENT";
+
     const [currentStep, setCurrentStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [formData, setFormData] = useState({
         name: "",
         email: "",
-        password: "", // Still keeping for fallback/admin
+        password: "",
         phone: "",
-        role: "STUDENT",
+        role: role,
         enrollmentNo: "",
+        employeeId: "",
         studentId: "",
         hostelName: "",
         roomNo: "",
@@ -34,6 +39,10 @@ export default function RegisterPage() {
         bloodGroup: "",
         medicalHistory: "",
     });
+
+    useEffect(() => {
+        setFormData(prev => ({ ...prev, role: role }));
+    }, [role]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -54,7 +63,7 @@ export default function RegisterPage() {
             });
 
             if (res.ok) {
-                router.push("/auth/login?role=STUDENT");
+                router.push(`/auth/login?role=${role}`);
             } else {
                 const data = await res.json();
                 setError(data.error || "Registration failed");
@@ -65,6 +74,8 @@ export default function RegisterPage() {
             setIsLoading(false);
         }
     };
+
+    const isStudent = role === "STUDENT";
 
     return (
         <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
@@ -88,7 +99,7 @@ export default function RegisterPage() {
                 </div>
 
                 <h1 className="text-2xl font-bold text-white mb-6 text-center">
-                    {steps[currentStep - 1].title} Details
+                    {role} Registration - {steps[currentStep - 1].title}
                 </h1>
 
                 {error && (
@@ -114,7 +125,7 @@ export default function RegisterPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-sm text-slate-400">Email</label>
-                                        <input name="email" value={formData.email} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" placeholder="student@vnit.ac.in" />
+                                        <input name="email" value={formData.email} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" placeholder="user@vnit.ac.in" />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-sm text-slate-400">Phone</label>
@@ -137,26 +148,45 @@ export default function RegisterPage() {
                                 className="space-y-4"
                             >
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-sm text-slate-400">Enrollment No.</label>
-                                        <input name="enrollmentNo" value={formData.enrollmentNo} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" placeholder="BT20CSE001" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm text-slate-400">Hostel Name</label>
-                                        <select name="hostelName" value={formData.hostelName} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white">
-                                            <option value="">Select Hostel</option>
-                                            <option value="Gargi">Gargi Hostel</option>
-                                            <option value="Old Ladies">Old Ladies Hostel</option>
-                                            <option value="New Ladies">New Ladies Hostel</option>
-                                        </select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm text-slate-400">Room No.</label>
-                                        <input name="roomNo" value={formData.roomNo} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" placeholder="101" />
-                                    </div>
+                                    {isStudent ? (
+                                        <>
+                                            <div className="space-y-2">
+                                                <label className="text-sm text-slate-400">Enrollment No.</label>
+                                                <input name="enrollmentNo" value={formData.enrollmentNo} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" placeholder="BT20CSE001" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm text-slate-400">Hostel Name</label>
+                                                <select name="hostelName" value={formData.hostelName} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white">
+                                                    <option value="">Select Hostel</option>
+                                                    <option value="Gargi">Gargi Hostel</option>
+                                                    <option value="Old Ladies">Old Ladies Hostel</option>
+                                                    <option value="New Ladies">New Ladies Hostel</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm text-slate-400">Room No.</label>
+                                                <input name="roomNo" value={formData.roomNo} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" placeholder="101" />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="space-y-2">
+                                                <label className="text-sm text-slate-400">Employee ID</label>
+                                                <input name="employeeId" value={formData.employeeId} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" placeholder="EMP12345" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm text-slate-400">Assigned Location</label>
+                                                <input name="hostelName" value={formData.hostelName} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" placeholder={role === 'WARDEN' ? "Gargi Hostel" : "Main Gate"} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm text-slate-400">Office/Post No.</label>
+                                                <input name="roomNo" value={formData.roomNo} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" placeholder="Office 101" />
+                                            </div>
+                                        </>
+                                    )}
                                     <div className="space-y-2">
                                         <label className="text-sm text-slate-400">Emergency Contact</label>
-                                        <input name="emergencyContact" value={formData.emergencyContact} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" placeholder="Parent's Number" />
+                                        <input name="emergencyContact" value={formData.emergencyContact} onChange={handleChange} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white" placeholder="Emergency Number" />
                                     </div>
                                 </div>
                             </motion.div>
@@ -172,7 +202,7 @@ export default function RegisterPage() {
                             >
                                 <div className="w-full max-w-sm border-2 border-dashed border-slate-700 rounded-2xl p-8 flex flex-col items-center justify-center hover:border-blue-500 transition-colors cursor-pointer bg-slate-950/50">
                                     <Camera className="w-12 h-12 text-slate-500 mb-4" />
-                                    <p className="text-white font-medium">Upload College ID Card</p>
+                                    <p className="text-white font-medium">Upload ID Card</p>
                                     <p className="text-xs text-slate-500 mt-2">Click to capture or upload</p>
                                 </div>
                                 <p className="text-sm text-slate-400 max-w-xs">
@@ -242,5 +272,13 @@ export default function RegisterPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function RegisterPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">Loading...</div>}>
+            <RegisterForm />
+        </Suspense>
     );
 }

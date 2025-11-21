@@ -18,6 +18,7 @@ model User {
   phone            String?     @unique
   role             String      @default("STUDENT") // STUDENT, WARDEN, SECURITY, ADMIN
   enrollmentNo     String?     @unique
+  employeeId       String?     @unique
   studentId        String?     @unique
   hostelName       String?
   roomNo           String?

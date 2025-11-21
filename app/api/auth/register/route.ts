@@ -8,7 +8,7 @@ export async function POST(req: Request) {
         const body = await req.json();
         const {
             name, email, password, phone, role,
-            enrollmentNo, hostelName, roomNo, emergencyContact
+            enrollmentNo, employeeId, hostelName, roomNo, emergencyContact
         } = body;
 
         // Check if user exists
@@ -16,16 +16,25 @@ export async function POST(req: Request) {
             where: {
                 OR: [
                     { email },
-                    { enrollmentNo },
+                    ...(enrollmentNo ? [{ enrollmentNo }] : []),
+                    ...(employeeId ? [{ employeeId }] : []),
                 ],
             },
         });
 
         if (existingUser) {
             return NextResponse.json(
-                { error: "User already exists with this Email or Enrollment No." },
+                { error: "User already exists with this Email, Enrollment No, or Employee ID." },
                 { status: 400 }
             );
+        }
+
+        // Role-specific validation
+        if (role === "STUDENT" && !enrollmentNo) {
+            return NextResponse.json({ error: "Enrollment No is required for Students" }, { status: 400 });
+        }
+        if ((role === "WARDEN" || role === "SECURITY") && !employeeId) {
+            return NextResponse.json({ error: "Employee ID is required for Staff" }, { status: 400 });
         }
 
         // Create new user
@@ -36,9 +45,10 @@ export async function POST(req: Request) {
                 password, // In real app, hash this!
                 phone,
                 role: role || "STUDENT",
-                enrollmentNo,
-                hostelName,
-                roomNo,
+                enrollmentNo: role === "STUDENT" ? enrollmentNo : null,
+                employeeId: role !== "STUDENT" ? employeeId : null,
+                hostelName, // Used as "Assigned Location" for staff
+                roomNo,     // Used as "Office/Post" for staff
                 emergencyContact,
                 isVerified: false, // Requires admin approval or ID check
             },
